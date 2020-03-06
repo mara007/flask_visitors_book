@@ -41,7 +41,7 @@ tr:nth-child(even) {
     html_table = '''
 <br>
 Recent visitors:
-<table>
+<table class="visitors_table">
     <tr>
         <th>Name</th>
         <th>Last name</th>
@@ -81,7 +81,7 @@ Recent visitors:
     def print_visitors_table(self):
         html = ''
         for v in self.visitors_list:
-            html += f'<tr><td>{v[0]}</td><td>{v[1]}</td><td>{v[2]}</td><tr>'
+            html += f'    <tr><td>{v[0]}</td><td>{v[1]}</td><td>{v[2]}</td></tr>\n'
 
         html += '</table>'
         return self.html_table + html
