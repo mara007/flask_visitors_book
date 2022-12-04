@@ -1,6 +1,10 @@
 from flask import Flask, request
 from datetime import datetime
 from html_style import HtmlStyle
+import flask_rest_db_api
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Visitors(object):
     html_main = '''
@@ -39,23 +43,36 @@ Recent visitors:
 </div>
 '''
     def __init__(self):
+        self.db_api = flask_rest_db_api.Api(db_uri='localhost:4000', namespace='default')
         self.visitors_list = []
-        self.add('Jan', 'Novak')
-        self.add('Jan', 'Starak')
-        self.add('Pepa', 'Zdepa')
-        self.add('Karel', 'Zeman')
+        # self.add('Jan', 'Novak')
+        # self.add('Jan', 'Starak')
+        # self.add('Pepa', 'Zdepa')
+        # self.add('Karel', 'Zeman')
 
+    def get_visitors_list(self) -> list:
+        result = []
+        keys = self.db_api.get_keys()
+        for key in keys:
+            value = self.db_api.get(key)
+            name = key.split(';', 2)
+            result.append((*name, value))
+
+        logger.debug(f'vistiors: {result}')
+        return result
+
+    def delete_visitors_list(self):
+        logger.debug('delete visitors list..')
+        keys = self.db_api.get_keys()
+        for key in keys:
+            self.db_api.delete(key)
 
     def add(self, name: str, surname: str) -> str or None:
-        entry = (name, surname, datetime.now().strftime('%d-%m-%Y %H:%M:%S'))
-        for i, v in enumerate(self.visitors_list):
-            if v[0] == name and v[1] == surname:
-                last_visit = self.visitors_list[i][2]
-                self.visitors_list[i] = entry
-                return last_visit
-
-        self.visitors_list.append(entry)
-        return None
+        key = f'{name};{surname}'
+        last_visit = self.db_api.get(key)
+        self.db_api.insert(key=key, value=datetime.now().strftime(
+            '%d-%m-%Y %H:%M:%S'), overwrite=True)
+        return last_visit
 
 
     def clear_visitors(self):
@@ -64,7 +81,7 @@ Recent visitors:
 
     def print_visitors_table(self):
         html = ''
-        for v in self.visitors_list:
+        for v in self.get_visitors_list():
             html += f'    <tr><td>{v[0]}</td><td>{v[1]}</td><td>{v[2]}</td></tr>\n'
 
         html += '</table>'
@@ -97,7 +114,7 @@ Recent visitors:
         if last_visit:
             html_last_visit = f'Your last visit was at {last_visit}<br>'
         else:
-            html_last_visit = '<br>'
+            html_last_visit = 'You are new here!<br>'
 
         html = f'''
 {HtmlStyle.html_main_style}
@@ -113,5 +130,5 @@ Recent visitors:
 
 
     def on_delete_visitors(self):
-        self.visitors_list = []
+        self.delete_visitors_list()
         return f'{HtmlStyle.html_main_style} {self.html_delete}'
